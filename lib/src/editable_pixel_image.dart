@@ -25,6 +25,8 @@ class EditablePixelImage extends StatefulWidget {
 
 class _EditablePixelImageState extends State<EditablePixelImage> {
   Point<int>? lastTapPos;
+  Point<int> mousePos = const Point(0, 0);
+  int brushSize = 1;
 
   @override
   void initState() {
@@ -49,18 +51,31 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
       child: LayoutBuilder(builder: (context, constraints) {
         final tapHandler = makeTapHandler(constraints);
 
-        return GestureDetector(
-          onTapDown: tapHandler,
-          onPanUpdate: tapHandler,
-          onTapUp: dragEndHandler,
-          onPanEnd: dragEndHandler,
-          child: PixelImage(
-            width: widget.controller.value.width,
-            height: widget.controller.value.height,
-            palette: widget.controller.value.palette,
-            pixels: widget.controller.value.pixels,
+        return Stack(children: [
+          GestureDetector(
+            onTapDown: tapHandler,
+            onPanUpdate: tapHandler,
+            onTapUp: dragEndHandler,
+            onPanEnd: dragEndHandler,
+            child: PixelImage(
+              width: widget.controller.value.width,
+              height: widget.controller.value.height,
+              palette: widget.controller.value.palette,
+              pixels: widget.controller.value.pixels,
+            ),
           ),
-        );
+          CustomPaint(
+            painter: CursorToolPainter(mousePos, brushSize),
+          ),
+          MouseRegion(
+            onHover: (event) => {
+              setState(() {
+                mousePos =
+                    Point(event.position.dx.toInt(), event.position.dy.toInt());
+              })
+            },
+          )
+        ]);
       }),
     );
   }
@@ -82,6 +97,7 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
       int y = widget.controller.height * yLocal ~/ constraints.maxHeight;
 
       Point<int> newTapPos = Point(x, y);
+
       // interpolate through missed pixels when dragging and plot them as well
       if (lastTapPos != null) {
         Point<int> delta = newTapPos - lastTapPos!;
@@ -122,6 +138,33 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
 
       lastTapPos = newTapPos;
     };
+  }
+}
+
+/// Draws the custom tool type indicator at the mouse position
+class CursorToolPainter extends CustomPainter {
+  /// The position of the mouse
+  Point<int> pos;
+
+  /// The pixel size radius used when painting pixels
+  int brushSize;
+
+  /// Draws the tool type indicator at the [pos] with size [brushSize]
+  CursorToolPainter(this.pos, this.brushSize);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Paint paint = Paint();
+    paint.color = Colors.yellow;
+    paint.isAntiAlias = false;
+    paint.strokeWidth = brushSize.toDouble();
+    canvas.drawCircle(Offset(pos.x.toDouble(), pos.y.toDouble()),
+        brushSize.toDouble(), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
   }
 }
 
