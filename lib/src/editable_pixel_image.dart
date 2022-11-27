@@ -1,8 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pixels/pixels.dart';
-import 'package:pixels/src/pixel_image.dart';
-import 'package:pixels/src/pixel_palette.dart';
 
 /// A [PixelImage] that can be manipulated using the [PixelImageController].
 class EditablePixelImage extends StatefulWidget {
@@ -24,6 +24,8 @@ class EditablePixelImage extends StatefulWidget {
 }
 
 class _EditablePixelImageState extends State<EditablePixelImage> {
+  Point<int>? lastTapPos;
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +52,8 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
         return GestureDetector(
           onTapDown: tapHandler,
           onPanUpdate: tapHandler,
+          onTapUp: dragEndHandler,
+          onPanEnd: dragEndHandler,
           child: PixelImage(
             width: widget.controller.value.width,
             height: widget.controller.value.height,
@@ -61,15 +65,51 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
     );
   }
 
+  void dragEndHandler(_) {
+    /* erases on drag end */
+    lastTapPos = null;
+  }
+
   void Function(dynamic) makeTapHandler(constraints) {
     return (details) {
+      // Do nothing if there is no callback supplied
+      if (widget.onTappedPixel == null) return;
+
       var xLocal = details.localPosition.dx;
       var yLocal = details.localPosition.dy;
 
-      var x = widget.controller.width * xLocal ~/ constraints.maxWidth;
-      var y = widget.controller.height * yLocal ~/ constraints.maxHeight;
+      int x = widget.controller.width * xLocal ~/ constraints.maxWidth;
+      int y = widget.controller.height * yLocal ~/ constraints.maxHeight;
 
-      if (widget.onTappedPixel != null) {
+      Point<int> newTapPos = Point(x, y);
+      // interpolate through missed pixels when dragging and plot them as well
+      if (lastTapPos != null) {
+        Point<int> delta = newTapPos - lastTapPos!;
+        while (delta.x != 0 || delta.y != 0) {
+          if (delta.x < 0) {
+            delta = Point(delta.x + 1, delta.y);
+          } else if (delta.x > 0) {
+            delta = Point(delta.x - 1, delta.y);
+          }
+
+          if (delta.y < 0) {
+            delta = Point(delta.x, delta.y + 1);
+          } else if (delta.y > 0) {
+            delta = Point(delta.x, delta.y - 1);
+          }
+
+          // plot the delta pixels
+          widget.onTappedPixel!(
+            PixelTapDetails._(
+              x: lastTapPos!.x + delta.x,
+              y: lastTapPos!.y + delta.y,
+              index: y * widget.controller.width + x,
+              localPosition: details.localPosition,
+            ),
+          );
+        }
+      } else {
+        // directly plot the one pixel
         widget.onTappedPixel!(
           PixelTapDetails._(
             x: x,
@@ -79,6 +119,8 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
           ),
         );
       }
+
+      lastTapPos = newTapPos;
     };
   }
 }
@@ -207,6 +249,7 @@ class PixelImageController extends ValueNotifier<_PixelImageValue> {
     required pixelIndex,
     required color,
   }) {
+    if (pixelIndex < 0 || (pixelIndex * 4 + 3) >= _pixelBytes.length) return;
     _pixelBytes[pixelIndex * 4 + 0] = color.red;
     _pixelBytes[pixelIndex * 4 + 1] = color.green;
     _pixelBytes[pixelIndex * 4 + 2] = color.blue;
