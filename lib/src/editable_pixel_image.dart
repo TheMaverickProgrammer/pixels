@@ -12,18 +12,10 @@ class EditablePixelImage extends StatefulWidget {
   /// Callback for when a pixel is tapped on the image.
   final void Function(PixelTapDetails details)? onTappedPixel;
 
-  /// Brush size in pixels
-  final int brushSize;
-
-  /// Brush color
-  final Color brushColor;
-
   /// Creates a new [EditablePixelImage].
   const EditablePixelImage({
     required this.controller,
     required this.onTappedPixel,
-    required this.brushSize,
-    required this.brushColor,
     super.key,
   });
 
@@ -77,8 +69,8 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
               pixels: widget.controller.value.pixels,
             ),
             CustomPaint(
-              painter: CursorToolPainter(
-                  mousePos, widget.brushSize, widget.brushColor, pixelImageKey),
+              painter: CursorToolPainter(mousePos, widget.controller.brushSize,
+                  widget.controller.brushColor, pixelImageKey),
             ),
             MouseRegion(
               cursor: SystemMouseCursors.none,
@@ -256,10 +248,10 @@ class PixelImageController extends ValueNotifier<_PixelImageValue> {
   final int width;
 
   /// Brush color
-  final Color brushColor;
+  Color brushColor;
 
   /// Brush size
-  final int brushSize;
+  int brushSize;
 
   /// Callback when a pixel is tapped on the [EditablePixelImage] controlled by
   /// the controller.
@@ -339,6 +331,13 @@ class PixelImageController extends ValueNotifier<_PixelImageValue> {
     _pixelBytes[pixelIndex * 4 + 1] = color.green;
     _pixelBytes[pixelIndex * 4 + 2] = color.blue;
     _pixelBytes[pixelIndex * 4 + 3] = color.alpha;
+    _update();
+  }
+
+  /// Updates the brush [size] in pixels and [color]
+  void setBrush(int size, Color color) {
+    brushSize = size;
+    brushColor = color;
     _update();
   }
 
