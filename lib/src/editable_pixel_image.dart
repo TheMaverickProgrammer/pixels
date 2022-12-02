@@ -139,16 +139,22 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
 
   void plotPixelWithBrush(int x, int y, Offset localPosition) {
     int r = widget.controller.brushSize ~/ 2;
-    for (int i = 0; i <= r; i++) {
-      for (int j = 0; j <= r; j++) {
+
+    // calculates 1/8th of the circle and mirrors the pixels
+    // this is still O(N^2) time complexity with a fraction of the steps
+    for (int j = r; j >= 0; j--) {
+      int rr = r - (r - j);
+      for (int i = rr; i >= 0; i--) {
         if (i * i + j * j > r * r) {
           continue;
         }
 
+        // mirrored along one axis for each x/y
         int x1 = x + i;
         int x2 = x - i;
         int y1 = y + j;
         int y2 = y - j;
+
         widget.onTappedPixel!(
           PixelTapDetails._(
             x: x1,
@@ -178,6 +184,45 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
             x: x2,
             y: y2,
             index: y2 * widget.controller.width + x2,
+            localPosition: localPosition,
+          ),
+        );
+
+        // mirrored along both axis
+        int x3 = x + j;
+        int x4 = x - j;
+        int y3 = y + i;
+        int y4 = y - i;
+
+        widget.onTappedPixel!(
+          PixelTapDetails._(
+            x: x3,
+            y: y3,
+            index: y3 * widget.controller.width + x3,
+            localPosition: localPosition,
+          ),
+        );
+        widget.onTappedPixel!(
+          PixelTapDetails._(
+            x: x4,
+            y: y3,
+            index: y3 * widget.controller.width + x4,
+            localPosition: localPosition,
+          ),
+        );
+        widget.onTappedPixel!(
+          PixelTapDetails._(
+            x: x3,
+            y: y4,
+            index: y4 * widget.controller.width + x3,
+            localPosition: localPosition,
+          ),
+        );
+        widget.onTappedPixel!(
+          PixelTapDetails._(
+            x: x4,
+            y: y4,
+            index: y4 * widget.controller.width + x4,
             localPosition: localPosition,
           ),
         );
