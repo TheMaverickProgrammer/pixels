@@ -32,10 +32,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _controller = PixelImageController(
-    palette: const PixelPalette.rPlace(),
-    width: 64,
-    height: 64,
-  );
+      customGradientEquation: (y) =>
+          Color.fromARGB(255, 0, 0, (255 * y).toInt()),
+      width: 64,
+      height: 64,
+      brushColor: Colors.red.withAlpha(100),
+      brushSize: 2,
+      bgColor: Colors.grey);
 
   @override
   Widget build(BuildContext context) {

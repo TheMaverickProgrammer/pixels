@@ -30,9 +30,11 @@ class PixelEditor extends StatefulWidget {
 
 class _PixelEditorState extends State<PixelEditor> {
   int _selectedColorIndex = 0;
+  double _selectedLuminosity = 0.5;
   late Color _selectedColor;
   late Color _finalColor;
-  double _selectedLuminosity = 0.5;
+  late int _brushSize;
+  late Color _brushColor;
 
   /// Mixes [colorIn] by luminosity `L`
   /// L < 0.5 will darken, S > 0.5 will brighten
@@ -69,6 +71,9 @@ class _PixelEditorState extends State<PixelEditor> {
 
     _selectedColor = _finalColor = color;
 
+    _brushSize = widget.controller.brushSize;
+    _brushColor = widget.controller.brushColor;
+
     super.initState();
   }
 
@@ -84,6 +89,8 @@ class _PixelEditorState extends State<PixelEditor> {
             EditablePixelImage(
               controller: widget.controller,
               onTappedPixel: handleTappedPixel,
+              brushSize: _brushSize,
+              brushColor: _brushColor,
             ),
             if (widget.controller.palette != null) ...[
               makePaletteColorPicker(isHorizontal),

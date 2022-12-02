@@ -12,10 +12,18 @@ class EditablePixelImage extends StatefulWidget {
   /// Callback for when a pixel is tapped on the image.
   final void Function(PixelTapDetails details)? onTappedPixel;
 
+  /// Brush size in pixels
+  final int brushSize;
+
+  /// Brush color
+  final Color brushColor;
+
   /// Creates a new [EditablePixelImage].
   const EditablePixelImage({
     required this.controller,
-    this.onTappedPixel,
+    required this.onTappedPixel,
+    required this.brushSize,
+    required this.brushColor,
     super.key,
   });
 
@@ -26,7 +34,8 @@ class EditablePixelImage extends StatefulWidget {
 class _EditablePixelImageState extends State<EditablePixelImage> {
   Point<int>? lastTapPos;
   Point<int> mousePos = const Point(0, 0);
-  int brushSize = 1;
+
+  GlobalKey pixelImageKey = GlobalKey(debugLabel: "pixelImageWidget");
 
   @override
   void initState() {
@@ -46,36 +55,42 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
 
   @override
   Widget build(BuildContext context) {
+    final double aspectRatio =
+        widget.controller.width / widget.controller.height;
+
     return AspectRatio(
-      aspectRatio: widget.controller.width / widget.controller.height,
+      aspectRatio: aspectRatio,
       child: LayoutBuilder(builder: (context, constraints) {
         final tapHandler = makeTapHandler(constraints);
 
-        return Stack(children: [
-          GestureDetector(
-            onTapDown: tapHandler,
-            onPanUpdate: tapHandler,
-            onTapUp: dragEndHandler,
-            onPanEnd: dragEndHandler,
-            child: PixelImage(
+        return GestureDetector(
+          onTapDown: tapHandler,
+          onPanUpdate: tapHandler,
+          onTapUp: dragEndHandler,
+          onPanEnd: dragEndHandler,
+          child: Stack(children: [
+            PixelImage(
+              key: pixelImageKey,
               width: widget.controller.value.width,
               height: widget.controller.value.height,
               palette: widget.controller.value.palette,
               pixels: widget.controller.value.pixels,
             ),
-          ),
-          CustomPaint(
-            painter: CursorToolPainter(mousePos, brushSize),
-          ),
-          MouseRegion(
-            onHover: (event) => {
-              setState(() {
-                mousePos =
-                    Point(event.position.dx.toInt(), event.position.dy.toInt());
-              })
-            },
-          )
-        ]);
+            CustomPaint(
+              painter: CursorToolPainter(
+                  mousePos, widget.brushSize, widget.brushColor, pixelImageKey),
+            ),
+            MouseRegion(
+              cursor: SystemMouseCursors.none,
+              onHover: (event) => {
+                setState(() {
+                  mousePos = Point(event.localPosition.dx.toInt(),
+                      event.localPosition.dy.toInt());
+                })
+              },
+            )
+          ]),
+        );
       }),
     );
   }
@@ -97,6 +112,9 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
       int y = widget.controller.height * yLocal ~/ constraints.maxHeight;
 
       Point<int> newTapPos = Point(x, y);
+
+      // Update the mouse pos in local coordinates so it moves with us
+      mousePos = Point(xLocal.toInt(), yLocal.toInt());
 
       // interpolate through missed pixels when dragging and plot them as well
       if (lastTapPos != null) {
@@ -149,17 +167,33 @@ class CursorToolPainter extends CustomPainter {
   /// The pixel size radius used when painting pixels
   int brushSize;
 
-  /// Draws the tool type indicator at the [pos] with size [brushSize]
-  CursorToolPainter(this.pos, this.brushSize);
+  /// The color of the brush
+  Color brushColor;
+
+  /// The context key for the canvas widget we draw to
+  GlobalKey pixelCanvasWidget;
+
+  /// Draws the tool type indicator at the [pos] with
+  /// size [brushSize] with respect to [pixelCanvasWidget]
+  /// with custom color [brushColor]
+  CursorToolPainter(
+      this.pos, this.brushSize, this.brushColor, this.pixelCanvasWidget);
 
   @override
   void paint(Canvas canvas, Size size) {
+    Size? pixelCanvasSize = pixelCanvasWidget.currentContext?.size;
+
+    if (pixelCanvasSize == null) return;
+
+    PixelImage image = pixelCanvasWidget.currentWidget as PixelImage;
+    final double canvasScale = (pixelCanvasSize.height / image.height) * 0.5;
+
     Paint paint = Paint();
-    paint.color = Colors.yellow;
+    paint.color = brushColor;
     paint.isAntiAlias = false;
     paint.strokeWidth = brushSize.toDouble();
     canvas.drawCircle(Offset(pos.x.toDouble(), pos.y.toDouble()),
-        brushSize.toDouble(), paint);
+        brushSize.toDouble() * canvasScale, paint);
   }
 
   @override
@@ -221,6 +255,12 @@ class PixelImageController extends ValueNotifier<_PixelImageValue> {
   /// Width in pixels of the [EditablePixelImage] controlled by the controller.
   final int width;
 
+  /// Brush color
+  final Color brushColor;
+
+  /// Brush size
+  final int brushSize;
+
   /// Callback when a pixel is tapped on the [EditablePixelImage] controlled by
   /// the controller.
   final void Function(PixelTapDetails details)? onTappedPixel;
@@ -234,6 +274,8 @@ class PixelImageController extends ValueNotifier<_PixelImageValue> {
     required this.width,
     required this.height,
     this.onTappedPixel,
+    this.brushSize = 1,
+    this.brushColor = Colors.white,
   }) : super(_PixelImageValue(
           pixels: pixels ?? _emptyPixels(width, height, bgColor),
           palette: palette,
