@@ -173,7 +173,7 @@ class _PixelEditorState extends State<PixelEditor> {
 
   void handleColorTap(details) {
     widget.controller.setPixel(
-      color: _finalColor,
+      color: widget.controller.forcedPaintColor ?? _finalColor,
       x: details.x,
       y: details.y,
     );

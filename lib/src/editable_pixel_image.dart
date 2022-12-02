@@ -282,6 +282,9 @@ class PixelImageController extends ValueNotifier<_PixelImageValue> {
   /// Width in pixels of the [EditablePixelImage] controlled by the controller.
   final int width;
 
+  /// Forced pixel (paint) color
+  Color? forcedPaintColor;
+
   /// Brush color
   Color brushColor;
 
@@ -373,7 +376,16 @@ class PixelImageController extends ValueNotifier<_PixelImageValue> {
   void setBrush(int size, Color color) {
     brushSize = size;
     brushColor = color;
-    _update();
+  }
+
+  /// Overrides selected gradient colors with supplied [color]
+  void overridePaintColor(Color color) {
+    forcedPaintColor = color;
+  }
+
+  /// Relinquishes forced paint color and resumes with last color selection
+  void revertPaintColor() {
+    forcedPaintColor = null;
   }
 
   void _update() {
