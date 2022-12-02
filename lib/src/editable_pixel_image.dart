@@ -125,29 +125,64 @@ class _EditablePixelImageState extends State<EditablePixelImage> {
           }
 
           // plot the delta pixels
-          widget.onTappedPixel!(
-            PixelTapDetails._(
-              x: lastTapPos!.x + delta.x,
-              y: lastTapPos!.y + delta.y,
-              index: y * widget.controller.width + x,
-              localPosition: details.localPosition,
-            ),
-          );
+          plotPixelWithBrush(lastTapPos!.x + delta.x, lastTapPos!.y + delta.y,
+              details.localPosition);
         }
       } else {
         // directly plot the one pixel
-        widget.onTappedPixel!(
-          PixelTapDetails._(
-            x: x,
-            y: y,
-            index: y * widget.controller.width + x,
-            localPosition: details.localPosition,
-          ),
-        );
+        plotPixelWithBrush(x, y, details.localPosition);
       }
 
       lastTapPos = newTapPos;
     };
+  }
+
+  void plotPixelWithBrush(int x, int y, Offset localPosition) {
+    int r = widget.controller.brushSize ~/ 2;
+    for (int i = 0; i <= r; i++) {
+      for (int j = 0; j <= r; j++) {
+        if (i * i + j * j > r * r) {
+          continue;
+        }
+
+        int x1 = x + i;
+        int x2 = x - i;
+        int y1 = y + j;
+        int y2 = y - j;
+        widget.onTappedPixel!(
+          PixelTapDetails._(
+            x: x1,
+            y: y1,
+            index: y1 * widget.controller.width + x1,
+            localPosition: localPosition,
+          ),
+        );
+        widget.onTappedPixel!(
+          PixelTapDetails._(
+            x: x2,
+            y: y1,
+            index: y1 * widget.controller.width + x2,
+            localPosition: localPosition,
+          ),
+        );
+        widget.onTappedPixel!(
+          PixelTapDetails._(
+            x: x1,
+            y: y2,
+            index: y2 * widget.controller.width + x1,
+            localPosition: localPosition,
+          ),
+        );
+        widget.onTappedPixel!(
+          PixelTapDetails._(
+            x: x2,
+            y: y2,
+            index: y2 * widget.controller.width + x2,
+            localPosition: localPosition,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -156,7 +191,7 @@ class CursorToolPainter extends CustomPainter {
   /// The position of the mouse
   Point<int> pos;
 
-  /// The pixel size radius used when painting pixels
+  /// The diameter of the brush in pixels used when painting
   int brushSize;
 
   /// The color of the brush

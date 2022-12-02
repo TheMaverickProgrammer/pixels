@@ -37,7 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
       width: 64,
       height: 64,
       brushColor: Colors.red.withAlpha(100),
-      brushSize: 2,
+      brushSize: 10,
       bgColor: Colors.grey);
 
   @override
